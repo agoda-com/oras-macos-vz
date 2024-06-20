@@ -16,14 +16,15 @@ limitations under the License.
 package root
 
 import (
-	"errors"
+	"fmt"
+	"os"
 	"strings"
 
 	ocispec "github.com/opencontainers/image-spec/specs-go/v1"
+	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 	"oras.land/oras-go/v2"
 	"oras.land/oras-go/v2/content"
-	"oras.land/oras-go/v2/content/file"
 	"oras.land/oras-go/v2/content/memory"
 	"oras.land/oras-go/v2/registry/remote/auth"
 	"oras.land/oras/cmd/oras/internal/argument"
@@ -31,109 +32,69 @@ import (
 	"oras.land/oras/cmd/oras/internal/display"
 	"oras.land/oras/cmd/oras/internal/display/status"
 	oerrors "oras.land/oras/cmd/oras/internal/errors"
-	"oras.land/oras/cmd/oras/internal/fileref"
 	"oras.land/oras/cmd/oras/internal/option"
 	"oras.land/oras/internal/contentutil"
 	"oras.land/oras/internal/listener"
 	"oras.land/oras/internal/registryutil"
+
+	"github.com/agoda-com/macOS-vz-kubelet/pkg/event"
+	"github.com/agoda-com/macOS-vz-kubelet/pkg/oci"
+	"github.com/virtual-kubelet/virtual-kubelet/log"
+	logruslogger "github.com/virtual-kubelet/virtual-kubelet/log/logrus"
+)
+
+const (
+	artifactType = "application/vnd.agoda.macosvz.artifact"
 )
 
 type pushOptions struct {
 	option.Common
 	option.Packer
-	option.ImageSpec
+	// option.ImageSpec
 	option.Target
 	option.Format
 
-	extraRefs         []string
-	manifestConfigRef string
-	artifactType      string
-	concurrency       int
+	diskPath      string
+	auxPath       string
+	hardwareModel string
+	machineID     string
+
+	extraRefs   []string
+	concurrency int
 }
 
 func pushCmd() *cobra.Command {
 	var opts pushOptions
 	cmd := &cobra.Command{
-		Use:   "push [flags] <name>[:<tag>[,<tag>][...]] <file>[:<type>] [...]",
-		Short: "Push files to a registry or an OCI image layout",
-		Long: `Push files to a registry or an OCI image layout
+		Use:   "push --disk-path <path> --aux-path <path> --hardware-model <base64_string> --machine-id <base64_string> [flags] <name>[:<tag>[,<tag>][...]] <file>[:<type>] [...]",
+		Short: "Package macOS virtual machine image using the macOS-vz-kubelet format and push it to an OCI registry",
+		Long: `Package macOS virtual machine image using the macOS-vz-kubelet format and push it to an OCI registry
 
-Example - Push file "hi.txt" with media type "application/vnd.oci.image.layer.v1.tar" (default):
-  oras push localhost:5000/hello:v1 hi.txt
+Example - Package and push a virtual machine image to the OCI registry using the macOS-vz-kubelet format (default):
+  oras push --disk-path /path/to/disk.img --aux-path /path/to/aux.img --hardware-model "e30=" --machine-id "e30=" localhost:5000/my-vm-image:latest
 
-Example - Push file "hi.txt" and export the pushed manifest to a specified path:
-  oras push --export-manifest manifest.json localhost:5000/hello:v1 hi.txt
+Example - Package and push a virtual machine image to the OCI registry using the macOS-vz-kubelet format and export the pushed manifest to a specified path:
+  oras push --disk-path /path/to/disk.img --aux-path /path/to/aux.img --hardware-model "e30=" --machine-id "e30=" --export-manifest manifest.json localhost:5000/my-vm-image:latest
 
-Example - Push file "hi.txt" with the custom media type "application/vnd.me.hi":
-  oras push localhost:5000/hello:v1 hi.txt:application/vnd.me.hi
+Example - Package and push a virtual machine image to the insecure registry using the macOS-vz-kubelet format:
+  oras push --disk-path /path/to/disk.img --aux-path /path/to/aux.img --hardware-model "e30=" --machine-id "e30=" --insecure localhost:5000/my-vm-image:latest
 
-Example - Push multiple files with different media types:
-  oras push localhost:5000/hello:v1 hi.txt:application/vnd.me.hi bye.txt:application/vnd.me.bye
+Example - Package and push a virtual machine image to the HTTP registry using the macOS-vz-kubelet format:
+  oras push --disk-path /path/to/disk.img --aux-path /path/to/aux.img --hardware-model "e30=" --machine-id "e30=" --plain-http localhost:5000/my-vm-image:latest
 
-Example - Push file "hi.txt" with artifact type "application/vnd.example+type":
-  oras push --artifact-type application/vnd.example+type localhost:5000/hello:v1 hi.txt
+Example - Package and push a virtual machine image to the OCI registry using the macOS-vz-kubelet format with multiple tags:
+  oras push --disk-path /path/to/disk.img --aux-path /path/to/aux.img --hardware-model "e30=" --machine-id "e30=" localhost:5000/my-vm-image:tag1,tag2,tag3
 
-Example - Push file "hi.txt" with config type "application/vnd.me.config":
-  oras push --image-spec v1.0 --artifact-type application/vnd.me.config localhost:5000/hello:v1 hi.txt
-
-Example - Push file "hi.txt" with the custom manifest config "config.json" of the custom media type "application/vnd.me.config":
-  oras push --config config.json:application/vnd.me.config localhost:5000/hello:v1 hi.txt
-
-Example - Push file to the insecure registry:
-  oras push --insecure localhost:5000/hello:v1 hi.txt
-
-Example - Push file to the HTTP registry:
-  oras push --plain-http localhost:5000/hello:v1 hi.txt
-
-Example - Push repository with manifest annotations:
-  oras push --annotation "key=val" localhost:5000/hello:v1
-
-Example - Push repository with manifest annotation file:
-  oras push --annotation-file annotation.json localhost:5000/hello:v1
-
-Example - Push file "hi.txt" with multiple tags:
-  oras push localhost:5000/hello:tag1,tag2,tag3 hi.txt
-
-Example - Push file "hi.txt" with multiple tags and concurrency level tuned:
-  oras push --concurrency 6 localhost:5000/hello:tag1,tag2,tag3 hi.txt
-
-Example - Push file "hi.txt" into an OCI image layout folder 'layout-dir' with tag 'test':
-  oras push --oci-layout layout-dir:test hi.txt
+Example - Package and push a virtual machine image to the OCI registry using the macOS-vz-kubelet format with multiple tags and concurrency level tuned:
+  oras push --disk-path /path/to/disk.img --aux-path /path/to/aux.img --hardware-model "e30=" --machine-id "e30=" --concurrency 6 localhost:5000/my-vm-image:tag1,tag2,tag3
 `,
 		Args: oerrors.CheckArgs(argument.AtLeast(1), "the destination for pushing"),
 		PreRunE: func(cmd *cobra.Command, args []string) error {
 			refs := strings.Split(args[0], ",")
 			opts.RawReference = refs[0]
 			opts.extraRefs = refs[1:]
-			opts.FileRefs = args[1:]
 			if err := option.Parse(cmd, &opts); err != nil {
 				return err
-			}
-
-			if opts.manifestConfigRef != "" && opts.artifactType == "" {
-				if !cmd.Flags().Changed("image-spec") {
-					// switch to v1.0 manifest since artifact type is suggested
-					// by OCI v1.1 artifact guidance but is not presented
-					// see https://github.com/opencontainers/image-spec/blob/e7f7c0ca69b21688c3cea7c87a04e4503e6099e2/manifest.md?plain=1#L170
-					opts.Flag = option.ImageSpecV1_0
-					opts.PackVersion = oras.PackManifestVersion1_0
-				} else if opts.Flag == option.ImageSpecV1_1 {
-					return &oerrors.Error{
-						Err:            errors.New(`missing artifact type for OCI image-spec v1.1 artifacts`),
-						Recommendation: "set an artifact type via `--artifact-type` or consider image spec v1.0",
-					}
-				}
-			}
-
-			switch opts.PackVersion {
-			case oras.PackManifestVersion1_0:
-				if opts.manifestConfigRef != "" && opts.artifactType != "" {
-					return errors.New("--artifact-type and --config cannot both be provided for 1.0 OCI image")
-				}
-			case oras.PackManifestVersion1_1:
-				if opts.manifestConfigRef == "" && opts.artifactType == "" {
-					opts.artifactType = oras.MediaTypeUnknownArtifact
-				}
 			}
 			return nil
 		},
@@ -141,55 +102,60 @@ Example - Push file "hi.txt" into an OCI image layout folder 'layout-dir' with t
 			return runPush(cmd, &opts)
 		},
 	}
-	cmd.Flags().StringVarP(&opts.manifestConfigRef, "config", "", "", "`path` of image config file")
-	cmd.Flags().StringVarP(&opts.artifactType, "artifact-type", "", "", "artifact type")
+
+	cmd.Flags().StringVar(&opts.diskPath, "disk-path", "", "Path to the virtual machine disk image")
+	cmd.Flags().StringVar(&opts.auxPath, "aux-path", "", "Path to the auxiliary image")
+	cmd.Flags().StringVar(&opts.hardwareModel, "hardware-model", "", "Hardware model identifier")
+	cmd.Flags().StringVar(&opts.machineID, "machine-id", "", "Machine ID")
+
 	cmd.Flags().IntVarP(&opts.concurrency, "concurrency", "", 5, "concurrency level")
 	opts.SetTypes(option.FormatTypeText, option.FormatTypeJSON, option.FormatTypeGoTemplate)
 	option.ApplyFlags(&opts, cmd.Flags())
 	return oerrors.Command(cmd, &opts.Target)
 }
 
+func validateOptions(opts *pushOptions) error {
+	if opts.diskPath == "" || opts.auxPath == "" || opts.hardwareModel == "" || opts.machineID == "" {
+		return fmt.Errorf("must provide disk-path, aux-path, hardware-model, and machine-id")
+	}
+	return nil
+}
+
 func runPush(cmd *cobra.Command, opts *pushOptions) error {
-	ctx, logger := command.GetLogger(cmd, &opts.Common)
-	displayStatus, displayMetadata, err := display.NewPushHandler(cmd.OutOrStdout(), opts.Format, opts.TTY, opts.Verbose)
-	if err != nil {
+	if err := validateOptions(opts); err != nil {
 		return err
 	}
-	annotations, err := opts.LoadManifestAnnotations()
+
+	ctx, logger := command.GetLogger(cmd, &opts.Common)
+	log.L = logruslogger.FromLogrus(logger.(*logrus.Entry))
+	ctx = log.WithLogger(ctx, log.L)
+
+	displayStatus, displayMetadata, err := display.NewPushHandler(cmd.OutOrStdout(), opts.Format, opts.TTY, opts.Verbose)
 	if err != nil {
 		return err
 	}
 
 	// prepare pack
+	config := oci.NewMacOSBundle(opts.hardwareModel, opts.machineID, opts.diskPath, opts.auxPath)
+	store, err := oci.NewWithBundle(os.TempDir(), config, event.LogEventRecorder{})
+	if err != nil {
+		return err
+	}
+	defer store.Close(ctx)
+
+	descs, err := store.GetFileDescriptors(ctx)
+	if err != nil {
+		return err
+	}
+
 	packOpts := oras.PackManifestOptions{
-		ConfigAnnotations:   annotations[option.AnnotationConfig],
-		ManifestAnnotations: annotations[option.AnnotationManifest],
+		Layers:           descs,
+		ConfigDescriptor: store.GetConfigDescriptor(ctx),
 	}
-	store, err := file.New("")
-	if err != nil {
-		return err
-	}
-	defer store.Close()
-	if opts.manifestConfigRef != "" {
-		path, cfgMediaType, err := fileref.Parse(opts.manifestConfigRef, oras.MediaTypeUnknownConfig)
-		if err != nil {
-			return err
-		}
-		desc, err := addFile(ctx, store, option.AnnotationConfig, cfgMediaType, path)
-		if err != nil {
-			return err
-		}
-		desc.Annotations = packOpts.ConfigAnnotations
-		packOpts.ConfigDescriptor = &desc
-	}
-	descs, err := loadFiles(ctx, store, annotations, opts.FileRefs, displayStatus)
-	if err != nil {
-		return err
-	}
-	packOpts.Layers = descs
+
 	memoryStore := memory.New()
 	pack := func() (ocispec.Descriptor, error) {
-		root, err := oras.PackManifest(ctx, memoryStore, opts.PackVersion, opts.artifactType, packOpts)
+		root, err := oras.PackManifest(ctx, memoryStore, oras.PackManifestVersion1_1, artifactType, packOpts)
 		if err != nil {
 			return ocispec.Descriptor{}, err
 		}
@@ -268,7 +234,7 @@ func doPush(dst oras.Target, stopTrack status.StopTrackTargetFunc, pack packFunc
 type packFunc func() (ocispec.Descriptor, error)
 type copyFunc func(desc ocispec.Descriptor) error
 
-func pushArtifact(dst oras.Target, pack packFunc, copy copyFunc) (ocispec.Descriptor, error) {
+func pushArtifact(_ oras.Target, pack packFunc, copy copyFunc) (ocispec.Descriptor, error) {
 	root, err := pack()
 	if err != nil {
 		return ocispec.Descriptor{}, err
