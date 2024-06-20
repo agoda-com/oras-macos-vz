@@ -17,8 +17,6 @@ package root
 
 import (
 	"context"
-	"errors"
-	"fmt"
 	"io"
 	"sync"
 
@@ -26,7 +24,6 @@ import (
 	"github.com/spf13/cobra"
 	"oras.land/oras-go/v2"
 	"oras.land/oras-go/v2/content"
-	"oras.land/oras-go/v2/content/file"
 	"oras.land/oras/cmd/oras/internal/argument"
 	"oras.land/oras/cmd/oras/internal/command"
 	"oras.land/oras/cmd/oras/internal/display"
@@ -37,6 +34,12 @@ import (
 	"oras.land/oras/cmd/oras/internal/option"
 	"oras.land/oras/internal/descriptor"
 	"oras.land/oras/internal/graph"
+
+	"github.com/agoda-com/macOS-vz-kubelet/pkg/event"
+	"github.com/agoda-com/macOS-vz-kubelet/pkg/oci"
+	"github.com/sirupsen/logrus"
+	"github.com/virtual-kubelet/virtual-kubelet/log"
+	logruslogger "github.com/virtual-kubelet/virtual-kubelet/log/logrus"
 )
 
 type pullOptions struct {
@@ -49,7 +52,6 @@ type pullOptions struct {
 	concurrency       int
 	KeepOldFiles      bool
 	IncludeSubject    bool
-	PathTraversal     bool
 	Output            string
 	ManifestConfigRef string
 }
@@ -100,7 +102,6 @@ Example - Pull artifact files from an OCI layout archive 'layout.tar':
 	}
 
 	cmd.Flags().BoolVarP(&opts.KeepOldFiles, "keep-old-files", "k", false, "do not replace existing files when pulling, treat them as errors")
-	cmd.Flags().BoolVarP(&opts.PathTraversal, "allow-path-traversal", "T", false, "allow storing files out of the output directory")
 	cmd.Flags().BoolVarP(&opts.IncludeSubject, "include-subject", "", false, "[Preview] recursively pull the subject of artifacts")
 	cmd.Flags().StringVarP(&opts.Output, "output", "o", ".", "output directory")
 	cmd.Flags().StringVarP(&opts.ManifestConfigRef, "config", "", "", "output manifest config file")
@@ -112,6 +113,9 @@ Example - Pull artifact files from an OCI layout archive 'layout.tar':
 
 func runPull(cmd *cobra.Command, opts *pullOptions) error {
 	ctx, logger := command.GetLogger(cmd, &opts.Common)
+	log.L = logruslogger.FromLogrus(logger.(*logrus.Entry))
+	ctx = log.WithLogger(ctx, log.L)
+
 	statusHandler, metadataHandler, err := display.NewPullHandler(cmd.OutOrStdout(), opts.Format, opts.Path, opts.TTY, opts.Verbose)
 	if err != nil {
 		return err
@@ -133,19 +137,14 @@ func runPull(cmd *cobra.Command, opts *pullOptions) error {
 	if err != nil {
 		return err
 	}
-	dst, err := file.New(opts.Output)
+	dst, err := oci.New(opts.Output, !opts.KeepOldFiles, event.LogEventRecorder{})
 	if err != nil {
 		return err
 	}
-	defer dst.Close()
-	dst.AllowPathTraversalOnWrite = opts.PathTraversal
-	dst.DisableOverwrite = opts.KeepOldFiles
+	defer dst.Close(ctx)
 
 	desc, err := doPull(ctx, src, dst, copyOptions, metadataHandler, statusHandler, opts)
 	if err != nil {
-		if errors.Is(err, file.ErrPathTraversalDisallowed) {
-			err = fmt.Errorf("%s: %w", "use flag --allow-path-traversal to allow insecurely pulling files outside of working directory", err)
-		}
 		return err
 	}
 
