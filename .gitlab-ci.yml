@@ -1,9 +1,12 @@
 stages:
   - build
 
+variables:
+  GORELEASER_IMAGE: goreleaser/goreleaser
+
 cli-publish:
   image:
-    name: goreleaser/goreleaser
+    name: $GORELEASER_IMAGE
     entrypoint: ['']
   stage: build
   only:
