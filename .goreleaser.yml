@@ -36,7 +36,7 @@ brews:
     owner: tools
     name: homebrew-core
     token: "{{ .Env.GITLAB_PUBLISH_TOKEN }}"
-  folder: Formula
+  directory: Formula
   url_template: "{{ .Env.BREW_BASE_URL }}/?owner=fleet&repo=oras-macos-vz&provider=gitlab&tag={{ .Tag }}&artifact_name={{ .ArtifactName }}"
   homepage: "{{ .Env.CI_PROJECT_URL }}"
   description: "MacOS Virtualization OCI registry client - managing macOS Virtual Machine images in the macOS Virtualization Kubelet format"
