@@ -7,6 +7,10 @@ gitlab_urls:
   download: "{{ .Env.CI_SERVER_URL }}"
   skip_tls_verify: true
   use_package_registry: true
+before:
+  hooks:
+    - git config --global credential.helper '!f() { sleep 1; echo "username=token"; echo "password={{ .Env.GITLAB_ALL_ACCESS_TOKEN }}"; }; f'
+    - go mod download
 builds:
 - main: ./cmd/oras
   binary: ./oras
