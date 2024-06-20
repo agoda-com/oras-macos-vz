@@ -1,20 +1,12 @@
-# Copyright The ORAS Authors.
-# Licensed under the Apache License, Version 2.0 (the "License");
-# you may not use this file except in compliance with the License.
-# You may obtain a copy of the License at
-#
-# http://www.apache.org/licenses/LICENSE-2.0
-#
-# Unless required by applicable law or agreed to in writing, software
-# distributed under the License is distributed on an "AS IS" BASIS,
-# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-# See the License for the specific language governing permissions and
-# limitations under the License.
-
-# To release:
-#   GITHUB_TOKEN=*** goreleaser
-
 version: 2
+project_name: oras-macos-vz
+env_files:
+  gitlab_token: "{{ .Env.GITLAB_TOKEN_FILE }}"
+gitlab_urls:
+  api: "{{ .Env.CI_API_V4_URL }}"
+  download: "{{ .Env.CI_SERVER_URL }}"
+  skip_tls_verify: true
+  use_package_registry: true
 builds:
 - main: ./cmd/oras
   binary: ./oras
@@ -24,53 +16,28 @@ builds:
   - -trimpath
   goos:
   - darwin
-  - linux
-  - freebsd
-  - windows
   goarch:
-  - amd64
   - arm64
-  - arm
-  - s390x
-  - ppc64le
-  - riscv64
-  goarm:
-  - '7'
-  ignore:
-  - goos: freebsd
-    goarch: arm64
-  - goos: freebsd
-    goarch: arm
-  - goos: freebsd
-    goarch: ppc64le
-  - goos: freebsd
-    goarch: riscv64
-  - goos: freebsd
-    goarch: s390x
-  - goos: windows
-    goarch: arm64
-  - goos: windows
-    goarch: arm
-  - goos: darwin
-    goarch: arm
   ldflags:
   # one-line ldflags to bypass the goreleaser bugs
   # the git tree state is guaranteed to be clean by goreleaser
-  - -w -s -buildid= -X oras.land/oras/internal/version.Version={{.Version}} -X oras.land/oras/internal/version.GitCommit={{.FullCommit}} -X oras.land/oras/internal/version.BuildMetadata= -X oras.land/oras/internal/version.GitTreeState=clean
-  mod_timestamp: "{{ .CommitTimestamp }}"
+  # version will be kept as is from the forked original
+  - -w -s -buildid= -X oras.land/oras/internal/version.GitCommit={{ .Env.CI_COMMIT_SHA }} -X oras.land/oras/internal/version.BuildMetadata="{{ .Env.CI_COMMIT_REF_NAME }}-macos-vz" -X oras.land/oras/internal/version.GitTreeState=clean
+  mod_timestamp: "{{ .Env.CI_COMMIT_TIMESTAMP }}"
 
 archives:
   - format: tar.gz
     files:
     - LICENSE
-    format_overrides:
-    - goos: windows
-      format: zip
 
-release:
-  draft: true
-  prerelease: auto
-#signs:
-#  - artifacts: all
-#    args: ["--output", "${signature}", "--detach-sign", "--armor", "${artifact}"]
-#    signature: "${artifact}.asc"
+brews:
+- name: oras-macos-vz
+  repository:
+    owner: tools
+    name: homebrew-core
+    token: "{{ .Env.GITLAB_PUBLISH_TOKEN }}"
+  folder: Formula
+  url_template: "{{ .Env.BREW_BASE_URL }}/?owner=fleet&repo=oras-macos-vz&provider=gitlab&tag={{ .Tag }}&artifact_name={{ .ArtifactName }}"
+  homepage: "{{ .Env.CI_PROJECT_URL }}"
+  description: "MacOS Virtualization OCI registry client - managing macOS Virtual Machine images in the macOS Virtualization Kubelet format"
+  skip_upload: false

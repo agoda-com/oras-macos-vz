@@ -1,0 +1,12 @@
+stages:
+  - build
+
+cli-publish:
+  image:
+    name: goreleaser/goreleaser
+    entrypoint: ['']
+  stage: build
+  only:
+    - tags
+  script:
+    - goreleaser release --clean --skip-validate
