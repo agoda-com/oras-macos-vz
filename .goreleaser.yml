@@ -1,16 +1,11 @@
 version: 2
-project_name: oras-macos-vz
-env_files:
-  gitlab_token: "{{ .Env.GITLAB_TOKEN_FILE }}"
+project_name: "{{ .Env.CI_PROJECT_NAME }}"
 gitlab_urls:
   api: "{{ .Env.CI_API_V4_URL }}"
   download: "{{ .Env.CI_SERVER_URL }}"
   skip_tls_verify: true
   use_package_registry: true
-before:
-  hooks:
-    - git config --global credential.helper '!f() { sleep 1; echo "username=token"; echo "password={{ .Env.GITLAB_ALL_ACCESS_TOKEN }}"; }; f'
-    - go mod download
+  use_job_token: true
 builds:
 - main: ./cmd/oras
   binary: ./oras
@@ -35,13 +30,13 @@ archives:
     - LICENSE
 
 brews:
-- name: oras-macos-vz
+- name: "{{ .Env.CI_PROJECT_NAME }}"
   repository:
     owner: tools
     name: homebrew-core
     token: "{{ .Env.GITLAB_PUBLISH_TOKEN }}"
   directory: Formula
-  url_template: "{{ .Env.BREW_BASE_URL }}/?owner=fleet&repo=oras-macos-vz&provider=gitlab&tag={{ .Tag }}&artifact_name={{ .ArtifactName }}"
+  url_template: "{{ .Env.BREW_BASE_URL }}/?owner={{ .Env.CI_PROJECT_ROOT_NAMESPACE }}&repo={{ .Env.CI_PROJECT_NAME }}&provider=gitlab&tag={{ .Tag }}&artifact_name={{ .ArtifactName }}"
   homepage: "{{ .Env.CI_PROJECT_URL }}"
   description: "MacOS Virtualization OCI registry client - managing macOS Virtual Machine images in the macOS Virtualization Kubelet format"
   skip_upload: false
