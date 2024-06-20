@@ -1,5 +1,5 @@
 version: 2
-project_name: "{{ .Env.CI_PROJECT_NAME }}"
+project_name: oras-macos-vz
 gitlab_urls:
   api: "{{ .Env.CI_API_V4_URL }}"
   download: "{{ .Env.CI_SERVER_URL }}"
@@ -30,7 +30,7 @@ archives:
     - LICENSE
 
 brews:
-- name: "{{ .Env.CI_PROJECT_NAME }}"
+- name: oras-macos-vz
   repository:
     owner: tools
     name: homebrew-core
