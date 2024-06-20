@@ -8,7 +8,7 @@ gitlab_urls:
   use_job_token: true
 builds:
 - main: ./cmd/oras
-  binary: ./oras
+  binary: ./oras-macos-vz
   env:
   - CGO_ENABLED=0
   flags:
