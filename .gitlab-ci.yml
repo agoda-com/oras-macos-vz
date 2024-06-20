@@ -9,4 +9,4 @@ cli-publish:
   only:
     - tags
   script:
-    - goreleaser release --clean --skip-validate
+    - goreleaser release --clean
