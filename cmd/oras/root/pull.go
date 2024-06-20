@@ -60,8 +60,8 @@ func pullCmd() *cobra.Command {
 	var opts pullOptions
 	cmd := &cobra.Command{
 		Use:   "pull [flags] <name>{:<tag>|@<digest>}",
-		Short: "Pull files from a registry or an OCI image layout",
-		Long: `Pull files from a registry or an OCI image layout
+		Short: "Pull macOS virtual machine image from a registry and unpack it",
+		Long: `Pull macOS virtual machine image from a registry and unpack it
 
 Example - Pull artifact files from a registry:
   oras pull localhost:5000/hello:v1
