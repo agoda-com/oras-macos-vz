@@ -8,5 +8,7 @@ cli-publish:
   stage: build
   only:
     - tags
+  variables:
+    GITLAB_TOKEN: "${CI_JOB_TOKEN}"
   script:
     - goreleaser release --clean

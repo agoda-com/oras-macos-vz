@@ -22,7 +22,7 @@ builds:
   # the git tree state is guaranteed to be clean by goreleaser
   # version will be kept as is from the forked original
   - -w -s -buildid= -X oras.land/oras/internal/version.GitCommit={{ .Env.CI_COMMIT_SHA }} -X oras.land/oras/internal/version.BuildMetadata="{{ .Env.CI_COMMIT_REF_NAME }}-macos-vz" -X oras.land/oras/internal/version.GitTreeState=clean
-  mod_timestamp: "{{ .Env.CI_COMMIT_TIMESTAMP }}"
+  mod_timestamp: "{{ .CommitTimestamp }}"
 
 archives:
   - format: tar.gz
