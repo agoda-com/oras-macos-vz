@@ -121,8 +121,8 @@ github.com/virtual-kubelet/virtual-kubelet v1.11.0/go.mod h1:WQfPHbIlzfhMNYkh6hF
 github.com/yuin/goldmark v1.1.27/go.mod h1:3hX8gzYuyVAZsxl0MRgGTJEmQBFcNTphYh9decYSb74=
 github.com/yuin/goldmark v1.2.1/go.mod h1:3hX8gzYuyVAZsxl0MRgGTJEmQBFcNTphYh9decYSb74=
 github.com/yuin/goldmark v1.4.13/go.mod h1:6yULJ656Px+3vBD8DxQVa3kxgyrAnzto9xy5taEt/CY=
-gitlab.agodadev.io/fleet/macOS-vz-kubelet v1.0.8-0.20241007082046-d42d36ef0bb5 h1:ibuStJ2NTdxiBJ92wN5N6FDh2mXRtTt6eAeXcsO2BI4=
-gitlab.agodadev.io/fleet/macOS-vz-kubelet v1.0.8-0.20241007082046-d42d36ef0bb5/go.mod h1:fvEoXeAvH30elPWDWgdxwxRP6pwObtieC3rp/CTOixI=
+gitlab.agodadev.io/fleet/macOS-vz-kubelet v1.0.8-0.20241007100240-a0abb7a04139 h1:IAQwfezpV3StPB4ldOhMrjc4G8p5KQpuBdKP6stBBqo=
+gitlab.agodadev.io/fleet/macOS-vz-kubelet v1.0.8-0.20241007100240-a0abb7a04139/go.mod h1:fvEoXeAvH30elPWDWgdxwxRP6pwObtieC3rp/CTOixI=
 golang.org/x/crypto v0.0.0-20190308221718-c2843e01d9a2/go.mod h1:djNgcEr1/C05ACkg1iLfiJU5Ep61QUkGW8qpdssI0+w=
 golang.org/x/crypto v0.0.0-20191011191535-87dc89f01550/go.mod h1:yigFU9vqHzYiE8UmvKecakEJjdnWj3jj499lnFckfCI=
 golang.org/x/crypto v0.0.0-20200622213623-75b288015ac9/go.mod h1:LzIPMQfyMNhhGPhUkYOs5KpL4U8rLKemX1yGLhDgUto=
