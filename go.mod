@@ -1,10 +1,10 @@
 module oras.land/oras
 
-go 1.22.4
+go 1.23.2
 
-require github.com/agoda-com/macOS-vz-kubelet v0.0.0-20240620075915-441cb3388402
+require github.com/agoda-com/macOS-vz-kubelet v1.0.8-0.20241007082046-d42d36ef0bb5
 
-replace github.com/agoda-com/macOS-vz-kubelet => gitlab.agodadev.io/fleet/macOS-vz-kubelet v0.0.0-20240620075915-441cb3388402
+replace github.com/agoda-com/macOS-vz-kubelet => gitlab.agodadev.io/fleet/macOS-vz-kubelet v1.0.8-0.20241007082046-d42d36ef0bb5
 
 require (
 	github.com/Masterminds/sprig/v3 v3.2.3
@@ -16,8 +16,8 @@ require (
 	github.com/spf13/cobra v1.8.1
 	github.com/spf13/pflag v1.0.5
 	github.com/virtual-kubelet/virtual-kubelet v1.11.0
-	golang.org/x/sync v0.7.0
-	golang.org/x/term v0.21.0
+	golang.org/x/sync v0.8.0
+	golang.org/x/term v0.24.0
 	gopkg.in/yaml.v3 v3.0.1
 	oras.land/oras-go/v2 v2.5.0
 )
@@ -26,7 +26,7 @@ require (
 	github.com/Masterminds/goutils v1.1.1 // indirect
 	github.com/Masterminds/semver/v3 v3.2.1 // indirect
 	github.com/davecgh/go-spew v1.1.1 // indirect
-	github.com/go-logr/logr v1.4.1 // indirect
+	github.com/go-logr/logr v1.4.2 // indirect
 	github.com/go-openapi/jsonpointer v0.21.0 // indirect
 	github.com/go-openapi/jsonreference v0.21.0 // indirect
 	github.com/go-openapi/swag v0.23.0 // indirect
@@ -50,21 +50,21 @@ require (
 	github.com/modern-go/reflect2 v1.0.2 // indirect
 	github.com/shopspring/decimal v1.3.1 // indirect
 	github.com/spf13/cast v1.6.0 // indirect
-	golang.org/x/crypto v0.22.0 // indirect
-	golang.org/x/net v0.24.0 // indirect
-	golang.org/x/oauth2 v0.19.0 // indirect
-	golang.org/x/sys v0.21.0 // indirect
-	golang.org/x/text v0.14.0 // indirect
+	golang.org/x/crypto v0.27.0 // indirect
+	golang.org/x/net v0.29.0 // indirect
+	golang.org/x/oauth2 v0.22.0 // indirect
+	golang.org/x/sys v0.25.0 // indirect
+	golang.org/x/text v0.18.0 // indirect
 	golang.org/x/time v0.5.0 // indirect
-	google.golang.org/protobuf v1.34.0 // indirect
+	google.golang.org/protobuf v1.34.2 // indirect
 	gopkg.in/inf.v0 v0.9.1 // indirect
 	gopkg.in/yaml.v2 v2.4.0 // indirect
-	k8s.io/api v0.30.2 // indirect
-	k8s.io/apimachinery v0.30.2 // indirect
-	k8s.io/client-go v0.30.2 // indirect
+	k8s.io/api v0.30.5 // indirect
+	k8s.io/apimachinery v0.30.5 // indirect
+	k8s.io/client-go v0.30.5 // indirect
 	k8s.io/klog/v2 v2.120.1 // indirect
 	k8s.io/kube-openapi v0.0.0-20240430033511-f0e62f92d13f // indirect
-	k8s.io/kubernetes v1.30.2 // indirect
+	k8s.io/kubernetes v1.30.5 // indirect
 	k8s.io/utils v0.0.0-20240502163921-fe8a2dddb1d0 // indirect
 	sigs.k8s.io/json v0.0.0-20221116044647-bc3834ca7abd // indirect
 	sigs.k8s.io/structured-merge-diff/v4 v4.4.1 // indirect

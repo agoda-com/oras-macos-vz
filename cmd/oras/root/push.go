@@ -134,23 +134,46 @@ func runPush(cmd *cobra.Command, opts *pushOptions) error {
 	if err != nil {
 		return err
 	}
+	annotations, err := opts.LoadManifestAnnotations()
+	if err != nil {
+		return err
+	}
 
 	// prepare pack
-	config := oci.NewMacOSBundle(opts.hardwareModel, opts.machineID, opts.diskPath, opts.auxPath)
-	store, err := oci.NewWithBundle(os.TempDir(), config, event.LogEventRecorder{})
+	config := oci.NewMacOSConfig(opts.hardwareModel, opts.machineID)
+	store, err := oci.New(os.TempDir(), true, event.LogEventRecorder{})
 	if err != nil {
 		return err
 	}
 	defer store.Close(ctx)
 
-	descs, err := store.GetFileDescriptors(ctx)
+	layers, err := loadFiles(
+		ctx,
+		store,
+		annotations,
+		map[string]string{
+			string(oci.MediaTypeDiskImage): opts.diskPath,
+			string(oci.MediaTypeAuxImage):  opts.auxPath,
+		},
+		displayStatus,
+	)
 	if err != nil {
 		return err
 	}
 
+	configDesc, err := store.Set(ctx, config)
+	if err != nil {
+		return err
+	}
+	layers = append(layers, configDesc)
+
+	manifestConfigDesc, err := store.GetManifestConfigDescriptor(ctx)
+	if err != nil {
+		return err
+	}
 	packOpts := oras.PackManifestOptions{
-		Layers:           descs,
-		ConfigDescriptor: store.GetConfigDescriptor(ctx),
+		Layers:           layers,
+		ConfigDescriptor: &manifestConfigDesc,
 	}
 
 	memoryStore := memory.New()

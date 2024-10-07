@@ -37,7 +37,6 @@ func New() *cobra.Command {
 		resolveCmd(),
 		copyCmd(),
 		tagCmd(),
-		// attachCmd(), // not supported for macos-vz format
 		blob.Cmd(),
 		manifest.Cmd(),
 		repo.Cmd(),
