@@ -2,9 +2,9 @@ module oras.land/oras
 
 go 1.23.2
 
-require github.com/agoda-com/macOS-vz-kubelet v1.0.8-0.20241007100958-e636e2e311cd
+require github.com/agoda-com/macOS-vz-kubelet v1.0.10
 
-replace github.com/agoda-com/macOS-vz-kubelet => gitlab.agodadev.io/fleet/macOS-vz-kubelet v1.0.8-0.20241007100958-e636e2e311cd
+replace github.com/agoda-com/macOS-vz-kubelet => gitlab.agodadev.io/fleet/macOS-vz-kubelet v1.0.10
 
 require (
 	github.com/Masterminds/sprig/v3 v3.2.3
