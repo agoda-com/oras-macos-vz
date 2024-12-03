@@ -22,33 +22,32 @@ import (
 	"path/filepath"
 
 	ocispec "github.com/opencontainers/image-spec/specs-go/v1"
-	"oras.land/oras-go/v2/content/file"
 	"oras.land/oras/cmd/oras/internal/display/status"
-	"oras.land/oras/cmd/oras/internal/fileref"
+
+	"github.com/agoda-com/macOS-vz-kubelet/pkg/oci"
+	"github.com/virtual-kubelet/virtual-kubelet/log"
 )
 
-func loadFiles(ctx context.Context, store *file.Store, annotations map[string]map[string]string, fileRefs []string, displayStatus status.PushHandler) ([]ocispec.Descriptor, error) {
+func loadFiles(ctx context.Context, store *oci.Store, annotations map[string]map[string]string, mediaTypeToFilename map[string]string, displayStatus status.PushHandler) ([]ocispec.Descriptor, error) {
 	var files []ocispec.Descriptor
-	for _, fileRef := range fileRefs {
-		filename, mediaType, err := fileref.Parse(fileRef, "")
-		if err != nil {
-			return nil, err
-		}
-
+	for mediaType, filename := range mediaTypeToFilename {
 		// get shortest absolute path as unique name
 		name := filepath.Clean(filename)
 		if !filepath.IsAbs(name) {
 			name = filepath.ToSlash(name)
 		}
 
-		err = displayStatus.OnFileLoading(name)
+		err := displayStatus.OnFileLoading(name)
 		if err != nil {
 			return nil, err
 		}
-		file, err := addFile(ctx, store, name, mediaType, filename)
+
+		log.G(ctx).Infof("packaging file %s:%s", mediaType, name)
+		file, err := addFile(ctx, store, mediaType, filename)
 		if err != nil {
 			return nil, err
 		}
+
 		if value, ok := annotations[filename]; ok {
 			if file.Annotations == nil {
 				file.Annotations = value
@@ -68,8 +67,8 @@ func loadFiles(ctx context.Context, store *file.Store, annotations map[string]ma
 	return files, nil
 }
 
-func addFile(ctx context.Context, store *file.Store, name string, mediaType string, filename string) (ocispec.Descriptor, error) {
-	file, err := store.Add(ctx, name, mediaType, filename)
+func addFile(ctx context.Context, store *oci.Store, mediaType string, filename string) (ocispec.Descriptor, error) {
+	file, err := store.Add(ctx, mediaType, filename)
 	if err != nil {
 		var pathErr *fs.PathError
 		if errors.As(err, &pathErr) {
